@@ -35,6 +35,15 @@ const rockGroup = document.getElementById('rockGroup');
 const paperGroup = document.getElementById('paperGroup');
 const scissorsGroup = document.getElementById('scissorsGroup');
 const allRingGroups = [rockGroup, paperGroup, scissorsGroup];
+const aboutModal = document.getElementById('aboutModal');
+const howModal = document.getElementById('howModal');
+
+// Auto‑join if URL has ?room=CODE
+const urlParams = new URLSearchParams(window.location.search);
+const roomFromUrl = urlParams.get('room');
+if (roomFromUrl && playerName) {
+  socket.emit('join-room', { roomId: roomFromUrl, playerName });
+}
 
 // ---------- State ----------
 let playerName = '';
@@ -79,6 +88,7 @@ function setRingEnabled(enabled) {
 }
 
 function showLobby() {
+  console.trace('showLobby was called from:');
   _isLeaving = true;
   lobbyScreen.classList.add('active');
   gameScreen.classList.remove('active');
@@ -132,12 +142,36 @@ async function startLocalStream() {
 }
 
 function createPeer() {
-  peer = new Peer(undefined, {
-    host: '0.peerjs.com',
-    port: 443,
-    secure: true,
-    debug: 1
+peer = new Peer(undefined, {
+    config: {
+      iceServers: [
+        {
+          urls: "stun:stun.relay.metered.ca:80",
+        },
+        {
+          urls: "turn:global.relay.metered.ca:80",
+          username: "513d9937667af6d1f2ed696a",
+          credential: "EW9Rlv9Cwy3ryg3N",
+        },
+        {
+          urls: "turn:global.relay.metered.ca:80?transport=tcp",
+          username: "513d9937667af6d1f2ed696a",
+          credential: "EW9Rlv9Cwy3ryg3N",
+        },
+        {
+          urls: "turn:global.relay.metered.ca:443",
+          username: "513d9937667af6d1f2ed696a",
+          credential: "EW9Rlv9Cwy3ryg3N",
+        },
+        {
+          urls: "turns:global.relay.metered.ca:443?transport=tcp",
+          username: "513d9937667af6d1f2ed696a",
+          credential: "EW9Rlv9Cwy3ryg3N",
+        },
+      ],
+    }
   });
+
   peer.on('open', (peerId) => {
     console.log('My peer ID:', peerId);
     socket.emit('peer-id', peerId);
@@ -406,9 +440,58 @@ diceToggleBtn.addEventListener('click', () => {
   socket.emit('toggle-dare-mode', diceActive);
 });
 
+// Share room
+const shareRoomBtn = document.getElementById('shareRoomBtn');
+shareRoomBtn.addEventListener('click', () => {
+  if (!currentRoom) return;
+  const shareData = {
+    title: 'Play-Dare – join my room!',
+    text: `Room code: ${currentRoom}`,
+    url: window.location.origin + '?room=' + currentRoom
+  };
+  if (navigator.share) {
+    navigator.share(shareData).catch(err => console.log(err));
+  } else {
+    // Fallback: copy room code
+    navigator.clipboard.writeText(currentRoom).then(() => {
+      alert('Room code copied: ' + currentRoom);
+    }).catch(() => {
+      prompt('Copy this room code:', currentRoom);
+    });
+  }
+});
+
 cameraToggleBtn.addEventListener('click', () => {
   cameraOff = !cameraOff;
   localVideoContainer.classList.toggle('camera-off', cameraOff);
   cameraToggleBtn.textContent = cameraOff ? '❌' : '📷';
   if (localStream) localStream.getVideoTracks()[0].enabled = !cameraOff;
+});
+// ---------- Modals ----------
+
+document.getElementById('closeAbout').addEventListener('click', () => {
+  aboutModal.classList.remove('active');
+});
+document.getElementById('closeHow').addEventListener('click', () => {
+  howModal.classList.remove('active');
+});
+
+// Lobby footer links (update the hrefs to trigger modals)
+document.querySelectorAll('.lobby-footer a').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (link.textContent === 'How to play') {
+      howModal.classList.add('active');
+    } else if (link.textContent === 'About') {
+      aboutModal.classList.add('active');
+    }
+  });
+});
+
+// Add these to the existing modal section
+document.getElementById('closeAboutBtn').addEventListener('click', () => {
+  aboutModal.classList.remove('active');
+});
+document.getElementById('closeHowBtn').addEventListener('click', () => {
+  howModal.classList.remove('active');
 });

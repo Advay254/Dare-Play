@@ -4,9 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Dare Play</title>
-  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>" />
+
+<link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#00e5ff" />
 <link rel="stylesheet" type="text/css" href="style.css">
+<!-- iOS splash screen (iPhone) -->
+<link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="/icons/iphone-splash.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 </head>
 <body>
 
@@ -40,31 +46,34 @@
   <!-- ==================== GAME SCREEN ==================== -->
   <div id="gameScreen" class="screen">
     <!-- TOP BAR -->
-    <div class="top-bar">
+  <div class="top-bar">
+    <div class="room-section">
       <span class="room-code" id="roomCodeDisplay">Room: ----</span>
-      <div class="player-names">
-        <span class="player me" id="myNameBadge">
-          <span class="status-dot" id="myStatusDot"></span>
-          <span id="myName">You</span>
-        </span>
-        <span class="player" id="opponentBadge">
-          <span class="status-dot" id="opponentStatusDot"></span>
-          <span id="opponentName">Opponent</span>
-        </span>
-      </div>
+      <span class="share-icon" id="shareRoomBtn" title="Share room">Share 🔗</span>
     </div>
+    <div class="player-names">
+      <span class="player me" id="myNameBadge">
+        <span class="status-dot" id="myStatusDot"></span>
+        <span id="myName">You</span>
+      </span>
+      <span class="player" id="opponentBadge">
+        <span class="status-dot" id="opponentStatusDot"></span>
+        <span id="opponentName">Opponent</span>
+      </span>
+    </div>
+  </div>
 
     <!-- VIDEO AREA -->
 <!-- VIDEO AREA -->
 <div class="video-area">
+  <div class="video-tile remote" id="remoteVideoContainer">
+    <video id="remoteVideo" autoplay playsinline></video>
+    <div class="video-placeholder" id="remotePlaceholder">📹</div>
+  </div>
   <div class="video-tile local" id="localVideoContainer">
     <video id="localVideo" autoplay muted playsinline></video>
     <div class="video-placeholder" id="localPlaceholder">📹</div>
     <button class="camera-toggle" id="cameraToggleBtn" title="Toggle camera">📷</button>
-  </div>
-  <div class="video-tile remote" id="remoteVideoContainer">
-    <video id="remoteVideo" autoplay playsinline></video>
-    <div class="video-placeholder" id="remotePlaceholder">📹</div>
   </div>
 </div>
     <!-- INFO STRIP -->
@@ -107,6 +116,33 @@
       <button class="dice-toggle" id="diceToggleBtn" title="Dare mode">🎲</button>
     </div>
   </div>
+<!-- About modal -->
+<div id="aboutModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" id="closeAbout">&times;</span>
+    <h2>About Dare or Die</h2>
+    <p>A video‑call game where you play Rock‑Paper‑Scissors and the loser does a dare.</p>
+    <p><strong>Download the app:</strong> Add this page to your home screen for the best experience.</p>
+    <p>Built for fun. No ads, no tracking.</p>
+    <button class="modal-close-btn" id="closeAboutBtn">Close</button>
+  </div>
+</div>
+
+<!-- How to play modal -->
+<div id="howModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" id="closeHow">&times;</span>
+    <h2>How to Play</h2>
+    <ol>
+      <li>Enter your name and create a room.</li>
+      <li>Share the room code with a friend.</li>
+      <li>Both pick Rock, Paper, or Scissors.</li>
+      <li>The winner chooses a dare (random or verbal).</li>
+      <li>Have fun and play again!</li>
+    </ol>
+    <button class="modal-close-btn" id="closeHowBtn">Close</button>
+  </div>
+</div>
 <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="app.js"></script>
