@@ -6,6 +6,13 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+app.get('/api/turn-credentials', (req, res) => {
+  res.json({
+    sid: process.env.TWILIO_SID || 'fallback-sid',
+    token: process.env.TWILIO_TOKEN || 'fallback-token'
+  });
+});
+
 app.use(express.static('public'));
 
 // ---------- Game state (in memory) ----------

@@ -38,14 +38,50 @@ const allRingGroups = [rockGroup, paperGroup, scissorsGroup];
 const aboutModal = document.getElementById('aboutModal');
 const howModal = document.getElementById('howModal');
 
-// Auto‑join if URL has ?room=CODE
-const urlParams = new URLSearchParams(window.location.search);
-const roomFromUrl = urlParams.get('room');
-if (roomFromUrl && playerName) {
-  socket.emit('join-room', { roomId: roomFromUrl, playerName });
+// Listen for service worker updates
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    // If a new service worker is found and it's waiting, show a prompt
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // New content available – show a toast or auto-refresh
+          showUpdateToast();
+        }
+      });
+    });
+
+    // If a waiting worker was already found (e.g., on page load)
+    if (reg.waiting) {
+      showUpdateToast();
+    }
+  }).catch(err => console.log('SW registration failed', err));
 }
 
+function showUpdateToast() {
+  // Create a simple overlay or banner
+  const toast = document.createElement('div');
+  toast.id = 'updateToast';
+  toast.style.cssText = `
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #00e5ff; color: #0a0a0f; padding: 12px 24px;
+    border-radius: 30px; font-weight: bold; z-index: 200;
+    box-shadow: 0 4px 15px rgba(0,229,255,0.4);
+    cursor: pointer; font-size: 0.9rem;
+  `;
+  toast.textContent = 'New version available – tap to refresh';
+  toast.addEventListener('click', () => {
+    // Send message to service worker to skip waiting and refresh
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ action: 'skipWaiting' });
+    }
+    window.location.reload();
+  });
+  document.body.appendChild(toast);
+}
 // ---------- State ----------
+let twilioCredentials = null;
 let playerName = '';
 let localStream = null;
 let peer = null;
@@ -122,7 +158,9 @@ function enterGame(roomId) {
   const oldOverlay = document.getElementById('remoteOverlay');
   if (oldOverlay) oldOverlay.remove();
   try { screen.orientation.lock('portrait').catch(() => {}); } catch (e) {}
-  startLocalStream().then(() => createPeer());
+startLocalStream().then(() => {
+  fetchTurnCredentials().then(() => createPeer());
+});
 }
 
 // ---------- Video ----------
@@ -141,34 +179,31 @@ async function startLocalStream() {
   }
 }
 
-function createPeer() {
-peer = new Peer(undefined, {
+async function fetchTurnCredentials() {
+  if (twilioCredentials) return twilioCredentials;
+  const res = await fetch('/api/turn-credentials');
+  twilioCredentials = await res.json();
+  return twilioCredentials;
+}
+
+async function createPeer() {
+  // Fetch credentials from server (only once)
+  const creds = await fetchTurnCredentials();
+
+  peer = new Peer(undefined, {
     config: {
       iceServers: [
         {
-          urls: "stun:stun.relay.metered.ca:80",
+          urls: "turn:global.turn.twilio.com:3478?transport=udp",
+          username: creds.sid,
+          credential: creds.token
         },
         {
-          urls: "turn:global.relay.metered.ca:80",
-          username: "513d9937667af6d1f2ed696a",
-          credential: "EW9Rlv9Cwy3ryg3N",
-        },
-        {
-          urls: "turn:global.relay.metered.ca:80?transport=tcp",
-          username: "513d9937667af6d1f2ed696a",
-          credential: "EW9Rlv9Cwy3ryg3N",
-        },
-        {
-          urls: "turn:global.relay.metered.ca:443",
-          username: "513d9937667af6d1f2ed696a",
-          credential: "EW9Rlv9Cwy3ryg3N",
-        },
-        {
-          urls: "turns:global.relay.metered.ca:443?transport=tcp",
-          username: "513d9937667af6d1f2ed696a",
-          credential: "EW9Rlv9Cwy3ryg3N",
-        },
-      ],
+          urls: "turn:global.turn.twilio.com:3478?transport=tcp",
+          username: creds.sid,
+          credential: creds.token
+        }
+      ]
     }
   });
 
@@ -314,7 +349,10 @@ socket.on('player-left', (leaverName) => {
   roundOver = true;
   centerBtn.textContent = '🏠';
   centerBtn.classList.add('play-again');
-  centerBtn.onclick = () => showLobby();
+  centerBtn.onclick = () => {
+    if (currentRoom) socket.emit('leave-room');
+    showLobby();
+  };
 });
 
 socket.on('opponent-disconnected', () => {
@@ -326,7 +364,10 @@ socket.on('opponent-disconnected', () => {
   roundOver = true;
   centerBtn.textContent = '🏠';
   centerBtn.classList.add('play-again');
-  centerBtn.onclick = () => showLobby();
+  centerBtn.onclick = () => {
+    if (currentRoom) socket.emit('leave-room');
+    showLobby();
+  };
 });
 
 socket.on('round-start', () => {
@@ -335,6 +376,7 @@ socket.on('round-start', () => {
   centerBtn.textContent = muted ? '🔇' : '🎤';
   centerBtn.classList.remove('play-again');
   if (muted) centerBtn.classList.add('muted');
+  centerBtn.onclick = centerButtonHandler;
   setInfo('Choose your move!');
   iAmReady = false;
   opponentReady = false;
@@ -360,6 +402,8 @@ socket.on('round-result', (data) => {
   centerBtn.classList.remove('muted');
   iAmReady = false;
   opponentReady = false;
+  centerBtn.onclick = centerButtonHandler;
+
 });
 
 socket.on('ready-update', ({ ready, total }) => {
@@ -378,6 +422,9 @@ socket.on('error', (msg) => alert(msg));
 
 // ---------- Center button ----------
 function centerButtonHandler() {
+  centerBtn.onclick = centerButtonHandler;
+  if (!currentRoom || !gameScreen.classList.contains('active')) return;
+
   if (roundOver) {
     if (!iAmReady) {
       iAmReady = true;
@@ -432,7 +479,6 @@ scissorsGroup.addEventListener('click', () => {
   socket.emit('choose-move', 'scissors');
 });
 
-centerBtn.addEventListener('click', centerButtonHandler);
 
 diceToggleBtn.addEventListener('click', () => {
   diceActive = !diceActive;
@@ -495,3 +541,30 @@ document.getElementById('closeAboutBtn').addEventListener('click', () => {
 document.getElementById('closeHowBtn').addEventListener('click', () => {
   howModal.classList.remove('active');
 });
+
+// ---------- Auto‑join from shared link ----------
+function tryAutoJoin() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomFromUrl = urlParams.get('room');
+  if (!roomFromUrl) return;
+
+  // Pre‑fill the room code input
+  roomCodeInput.value = roomFromUrl.toUpperCase();
+  // Trigger the input event so button states update
+  roomCodeInput.dispatchEvent(new Event('input'));
+
+  // If a name is already saved, attempt to join immediately
+  const savedName = loadName();
+  if (savedName) {
+    playerNameInput.value = savedName;
+    playerName = savedName;
+    playerNameInput.dispatchEvent(new Event('input'));
+    socket.emit('join-room', { roomId: roomFromUrl.toUpperCase(), playerName: savedName });
+  } else {
+    // Focus the name input so the user can type it
+    playerNameInput.focus();
+    // When they finish typing, the normal Join button will work
+  }
+}
+// Wait a tick for the DOM and socket to be ready
+setTimeout(tryAutoJoin, 500);
