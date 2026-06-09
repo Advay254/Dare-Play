@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dareordie-v2'; 
+const CACHE_NAME = 'dareordie-v2.1'; 
 const ASSETS = [
   '/',
   '/index.html',
@@ -26,10 +26,11 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Cache the updated file for future use
         const responseClone = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
         return response;
@@ -37,6 +38,7 @@ self.addEventListener('fetch', event => {
       .catch(() => caches.match(event.request))
   );
 });
+
 // Handle skip waiting message from the page
 self.addEventListener('message', event => {
   if (event.data && event.data.action === 'skipWaiting') {

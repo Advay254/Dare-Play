@@ -124,7 +124,6 @@ function setRingEnabled(enabled) {
 }
 
 function showLobby() {
-  console.trace('showLobby was called from:');
   _isLeaving = true;
   lobbyScreen.classList.add('active');
   gameScreen.classList.remove('active');
@@ -166,7 +165,10 @@ startLocalStream().then(() => {
 // ---------- Video ----------
 async function startLocalStream() {
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localStream = await navigator.mediaDevices.getUserMedia({
+  video: { width: 640, height: 480, frameRate: 20 },
+  audio: true
+});
     const localVideoEl = document.getElementById('localVideo');
     localVideoEl.srcObject = localStream;
     localVideoEl.onloadedmetadata = () => {
@@ -208,7 +210,6 @@ async function createPeer() {
   });
 
   peer.on('open', (peerId) => {
-    console.log('My peer ID:', peerId);
     socket.emit('peer-id', peerId);
   });
   peer.on('call', (call) => {
