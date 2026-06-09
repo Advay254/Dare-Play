@@ -21,20 +21,20 @@ const rooms = {};  // { roomId: { players: [], names: {}, moves: {}, darePrefere
 // ---------- Dare list ----------
 const dareList = [
   "Do 10 push-ups",
-  "Remove one piece of clothing right now, your choice which one."
-  "Answer any question I ask truthfully while showing me the body part I choose."
-  "Sing a song for 30 seconds"
-  "Record a 20-second moan and dirty talk voice note"
+  "Remove one piece of clothing right now, your choice which one.",
+  "Answer any question I ask truthfully while showing me the body part I choose.",
+  "Sing a song for 30 seconds",
+  "Record a 20-second moan and dirty talk voice note",
   "Talk in your mother tongue for the next round",
   "Show your environment",
-  "reveal your darkest fantancy"
-  "sing Your full national anthem"
-  "find a random person and give a sugestive comment"
-  "Go to the window or balcony and Quickly flash your tits on camera"
-  "Change into whatever outfit I tell you to wear for the rest of the game."
+  "reveal your darkest fantancy",
+  "sing Your full national anthem",
+  "find a random person and give a sugestive comment",
+  "Go to the window or balcony and Quickly flash your tits on camera",
+  "Change into whatever outfit I tell you to wear for the rest of the game.",
   "Do your best impression of a celebrity",
   "Tell a joke — opponent rates it out of 10",
-  "Hop on one foot for 20 seconds"
+  "Hop on one foot for 20 seconds",
 ];
 
 // ---------- Helpers ----------
